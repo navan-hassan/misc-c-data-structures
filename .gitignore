@@ -1,0 +1,14 @@
+# Python virtual environment
+venv
+.venv
+
+# Build System
+build/
+compile_commands.json
+CMakeUserPresets.json
+
+# Clangd LSP files
+.cache
+
+# IDE files
+.vscode
