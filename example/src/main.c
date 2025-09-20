@@ -11,6 +11,7 @@ static void hash_table_example() {
     HashTable hash_table = {0};
     initialize_hash_table(&hash_table);
 
+    const uint64_t max_count = 400;
     uint64_t k = 12;
     uint32_t v = 22222;
 
@@ -19,14 +20,16 @@ static void hash_table_example() {
     assert(result != NULL);
     assert(*result == v);
 
-    fprintf(stderr, "K: %zu, V: %d", k, *result);
-    for (int i = 0; i < 200; i++) {
+    fprintf(stderr, "K: %zu, V: %d\n", k, *result);
+    for (int i = 0; i < max_count; i++) {
         uint32_t value = (uint32_t)(i ^ (2 << i));
         uint64_t key = (i + 1);
         hash_table_insert(&hash_table, key, value);
     }
 
-    for (int i = 0; i < 200; i++) {
+    assert(hash_table.count == max_count);
+
+    for (int i = 0; i < max_count; i++) {
         uint32_t value = (uint32_t)(i ^ (2 << i));
         uint64_t key = (i + 1);
         assert(hash_table_contains_key(&hash_table, key));
@@ -34,9 +37,12 @@ static void hash_table_example() {
         assert(*result == value);
     }
 
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < max_count; i++) {
         uint64_t key = (i + 1);
         assert(hash_table_delete_entry(&hash_table, key));
+        if ((key + 1) < max_count) {
+            assert(hash_table_contains_key(&hash_table, (key + 1)));
+        }
     }
     destroy_hash_table(&hash_table);
 }
@@ -137,7 +143,7 @@ static void quad_tree_example() {
 }
 
 int main() {
-    //hash_table_example();
-    quad_tree_example();
+    hash_table_example();
+    //quad_tree_example();
     return 0;
 }

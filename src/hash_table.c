@@ -130,12 +130,27 @@ void hash_table_insert(HashTable* table, uint64_t key, uint32_t value) {
     fprintf(stderr, "Failed to insert element. No space in table\n");
 }
 
+static void do_backwards_shift(HashTable* table, size_t start_index) {
+    assert(table != NULL);
+
+    size_t prev = start_index;
+    size_t next = (prev + 1) % table->capacity;
+    while (table->nodes[next].status == NODE_STATUS_OCCUPIED && table->nodes[next].probe_distance > 0) {
+        table->nodes[prev] = table->nodes[next];
+        --table->nodes[prev].probe_distance;
+
+        prev = next;
+        next = (next + 1) % table->capacity;
+    }
+}
+
 bool hash_table_delete_entry(HashTable* table, uint64_t key) {
     size_t index;
     bool success = search_node_index(table, key, &index);
     if (success) {
         table->nodes[index].status = NODE_STATUS_DELETED;
         --table->count;
+        do_backwards_shift(table, index);
     }
     else {
         fprintf(stderr, "Error: Cannot find key %zu. Failed to delete\n", key);
