@@ -90,7 +90,7 @@ bool hash_table_contains_key(const HashTable* table, uint64_t key) {
 
 void hash_table_insert(HashTable* table, uint64_t key, uint32_t value) {
     if (table->count * 2 >= table->capacity) {
-        printf("TODO: handle resize\n");
+        fprintf(stderr, "TODO: handle resize\n");
         return;
     }
 
@@ -127,7 +127,7 @@ void hash_table_insert(HashTable* table, uint64_t key, uint32_t value) {
         if (probing_distance >= table->capacity)
             break;
     }
-    printf("Failed to insert element. No space in table\n");
+    fprintf(stderr, "Failed to insert element. No space in table\n");
 }
 
 bool hash_table_delete_entry(HashTable* table, uint64_t key) {
@@ -138,7 +138,7 @@ bool hash_table_delete_entry(HashTable* table, uint64_t key) {
         --table->count;
     }
     else {
-        printf("Error: Cannot find key %zu. Failed to delete\n", key);
+        fprintf(stderr, "Error: Cannot find key %zu. Failed to delete\n", key);
     }
     return success;
 }

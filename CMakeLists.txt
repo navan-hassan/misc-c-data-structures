@@ -10,6 +10,7 @@ add_subdirectory(example)
 add_library(misc_c_data_structures 
     src/hash_table.c
     src/list_utilities.c
+    src/quad_tree.c
 )
 
 target_include_directories(misc_c_data_structures
