@@ -11,7 +11,7 @@ static void hash_table_example() {
     HashTable hash_table = {0};
     initialize_hash_table(&hash_table);
 
-    const uint64_t max_count = 400;
+    const uint64_t max_count = 900;
     uint64_t k = 12;
     uint32_t v = 22222;
 

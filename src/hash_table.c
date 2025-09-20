@@ -67,12 +67,78 @@ static bool search_node_index(const HashTable* table, uint64_t key, size_t* inde
     return found;
 }
 
+static bool hash_table_do_insertion(HashTable* table, uint64_t key, uint32_t value, bool reinsert);
+
+static void resize_hash_table(HashTable* table) {
+    Node* old_table = table->nodes;
+    size_t old_capacity = table->capacity;
+
+    table->capacity += INITIAL_CAPACITY;
+    table->nodes = (Node*)calloc(table->capacity, sizeof(Node));
+
+    for (int i = 0; i < old_capacity; i++) {
+        Node* node = &old_table[i];
+        if (node->status != NODE_STATUS_OCCUPIED)
+            continue;
+
+        assert(hash_table_do_insertion(table, node->key, node->value, true));
+    }
+
+    free(old_table);
+}
+
+static bool hash_table_do_insertion(HashTable* table, uint64_t key, uint32_t value, bool reinsert) {
+    if (!reinsert && ((table->count * 2) >= table->capacity)) {
+        fprintf(stderr, "Resizing table\n");
+        resize_hash_table(table);
+    }
+
+    size_t index = get_hash_index(table, key);
+
+    Node node_to_add = {
+        .status = NODE_STATUS_OCCUPIED,
+        .key = key,
+        .probe_distance = 0,
+        .value = value,
+    };
+
+    bool success = false;
+    for (int i = 0; i < table->capacity; i++) {
+        size_t probe_index = (index + i) % table->capacity;
+        Node* cursor = &table->nodes[probe_index];
+
+        if (cursor->status != NODE_STATUS_OCCUPIED || cursor->key == key) {
+            if (cursor->status != NODE_STATUS_OCCUPIED && !reinsert)
+                ++table->count;
+
+            if (cursor->status == NODE_STATUS_EMPTY && !reinsert)
+                ++table->nodes_visited;
+
+            *cursor = node_to_add;
+            success = true;
+            break;
+        }
+
+        if (cursor->status == NODE_STATUS_OCCUPIED && node_to_add.probe_distance > cursor->probe_distance) {
+            Node temp = *cursor;
+            *cursor = node_to_add;
+            node_to_add = temp;
+        }
+        ++node_to_add.probe_distance;
+
+        if (node_to_add.probe_distance >= table->capacity)
+            break;
+    }
+    return success;
+}
+
 void initialize_hash_table(HashTable* table) {
     assert(table != NULL);
 
     memset(table, 0, sizeof(HashTable));
     table->seed = generate_random_seed();
-    increase_list_capacity((void**)&table->nodes, &table->capacity, sizeof(Node), INITIAL_CAPACITY);
+    table->capacity = INITIAL_CAPACITY;
+    table->nodes = (Node*)calloc(table->capacity, sizeof(Node));
 }
 
 void destroy_hash_table(HashTable* table) {
@@ -88,46 +154,10 @@ bool hash_table_contains_key(const HashTable* table, uint64_t key) {
     return search_node_index(table, key, NULL);
 }
 
-void hash_table_insert(HashTable* table, uint64_t key, uint32_t value) {
-    if (table->count * 2 >= table->capacity) {
-        fprintf(stderr, "TODO: handle resize\n");
-        return;
-    }
-
-    size_t index = get_hash_index(table, key);
-    Node node_to_add = {
-        .status = NODE_STATUS_OCCUPIED,
-        .key = key,
-        .value = value,
-    };
-
-    size_t probing_distance = 0;
-    for (int i = 0; i < table->capacity; i++) {
-        size_t probe_index = (index + i) % table->capacity;
-        Node* cursor = &table->nodes[probe_index];
-        if (cursor->status != NODE_STATUS_OCCUPIED || cursor->key == key) {
-            if (cursor->status != NODE_STATUS_OCCUPIED)
-                ++table->count;
-            if (cursor->status == NODE_STATUS_EMPTY)
-                ++table->nodes_visited;
-
-            *cursor = node_to_add;
-            cursor->probe_distance = probing_distance;
-            return;
-        }
-
-        if (cursor->status == NODE_STATUS_OCCUPIED && probing_distance > cursor->probe_distance) {
-            probing_distance = cursor->probe_distance;
-            Node temp = *cursor;
-            *cursor = node_to_add;
-            node_to_add = temp;
-        }
-        ++probing_distance;
-
-        if (probing_distance >= table->capacity)
-            break;
-    }
-    fprintf(stderr, "Failed to insert element. No space in table\n");
+bool hash_table_insert(HashTable* table, uint64_t key, uint32_t value) {
+    bool result = hash_table_do_insertion(table, key, value, false);
+    assert(result);
+    return result;
 }
 
 static void do_backwards_shift(HashTable* table, size_t start_index) {
